@@ -26,7 +26,7 @@ impl AppConfig {
     pub fn load() -> Self {
         let base_dirs = directories::BaseDirs::new();
         let config_file = match &base_dirs {
-            Some(dirs) => dirs.config_dir().join("dotfiles").join("config.toml"),
+            Some(dirs) => dirs.config_dir().join("speck").join("config.toml"),
             None => panic!("Unable to find user config directory"),
         };
 
