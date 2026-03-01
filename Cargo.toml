@@ -1,0 +1,12 @@
+[package]
+name = "speck"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.60", features = ["derive"] }
+directories = "6.0.0"
+git2 = { version = "0.20.4", features = ["vendored-openssl"] }
+serde = { version = "1.0.228", features = ["derive"] }
+shellexpand = "3.1.2"
+toml = "1.0.3"
