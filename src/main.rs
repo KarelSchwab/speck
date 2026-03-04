@@ -12,7 +12,8 @@ fn main() -> Result<()> {
         Commands::Link { files } => command_runner?.link(files)?,
         Commands::Unlink { files } => command_runner?.unlink(files)?,
         Commands::Clone { repos, rm } => command_runner?.clone(repos, *rm)?,
+        Commands::List { dotfiles, repos } => command_runner?.list(*dotfiles, *repos)?,
     };
-    println!("{msg}");
+    println!("{}", msg.trim());
     Ok(())
 }

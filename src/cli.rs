@@ -29,6 +29,12 @@ pub enum Commands {
         #[arg(long)]
         rm: bool,
     },
+    List {
+        #[arg(long)]
+        dotfiles: bool,
+        #[arg(long)]
+        repos: bool,
+    },
 }
 
 pub struct CommandRunner {
@@ -40,6 +46,37 @@ impl CommandRunner {
         Ok(Self {
             app_config: AppConfig::load()?,
         })
+    }
+
+    pub fn list(self, dotfiles: bool, repos: bool) -> Result<String> {
+        let mut out = String::new();
+
+        let mut dotfiles_out = String::from("Dotfiles:\n");
+        let configured_dotfiles = &self.app_config.dotfiles;
+        if let Some(dfs) = configured_dotfiles {
+            for dotfile in dfs {
+                dotfiles_out.push_str(&format!("- {}\n", dotfile.name));
+            }
+        }
+
+        let mut repos_out = String::from("Repos:\n");
+        let configured_repos = &self.app_config.repos;
+        if let Some(rp) = configured_repos {
+            for repo in rp {
+                repos_out.push_str(&format!("- {}\n", repo.name));
+            }
+        }
+
+        if (!dotfiles && !repos) || (dotfiles && repos) {
+            out.push_str(dotfiles_out.as_str());
+            out.push_str(repos_out.as_str());
+        } else if dotfiles {
+            out.push_str(dotfiles_out.as_str());
+        } else if repos {
+            out.push_str(repos_out.as_str());
+        }
+
+        Ok(out)
     }
 
     pub fn link(self, files: &Option<Vec<String>>) -> Result<String> {
