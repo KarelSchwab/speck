@@ -1,5 +1,6 @@
 use std::{fs, os, path::PathBuf};
 
+use anyhow::{Ok, Result, bail};
 use clap::{Parser, Subcommand};
 use git2::Repository;
 
@@ -35,13 +36,14 @@ pub struct CommandRunner {
 }
 
 impl CommandRunner {
-    pub fn new() -> Self {
-        Self {
-            app_config: AppConfig::load(),
-        }
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            app_config: AppConfig::load()?,
+        })
     }
 
-    pub fn link(self, files: &Option<Vec<String>>) {
+    pub fn link(self, files: &Option<Vec<String>>) -> Result<String> {
+        let mut out = String::from("Successfully linked ");
         if let Some(mut dotfiles) = self.app_config.dotfiles {
             if let Some(names) = files {
                 dotfiles.retain(|dotfile| names.contains(&dotfile.name));
@@ -49,22 +51,19 @@ impl CommandRunner {
             for dotfile in dotfiles {
                 let destination_path = PathBuf::from(dotfile.destination);
                 if destination_path.exists() {
-                    match fs::remove_dir_all(destination_path.as_path()) {
-                        Ok(_) => println!("Successfully removed {}", destination_path.display()),
-                        Err(_) => panic!("Cannot remove {}", destination_path.display()),
-                    }
+                    fs::remove_dir_all(destination_path.as_path())?;
                 }
 
                 let source_path = PathBuf::from(dotfile.source);
-                match os::unix::fs::symlink(source_path.as_path(), destination_path.as_path()) {
-                    Ok(_) => println!("Successfully stowed {}", dotfile.name),
-                    Err(e) => panic!("Unable to stow {}: {}", dotfile.name, e),
-                }
+                os::unix::fs::symlink(source_path.as_path(), destination_path.as_path())?;
+                out.push_str(&format!("{} ", dotfile.name));
             }
         }
+        Ok(out)
     }
 
-    pub fn unlink(self, files: &Option<Vec<String>>) {
+    pub fn unlink(self, files: &Option<Vec<String>>) -> Result<String> {
+        let mut out = String::from("Successfully unlinked ");
         if let Some(mut dotfiles) = self.app_config.dotfiles {
             if let Some(names) = files {
                 dotfiles.retain(|dotfile| names.contains(&dotfile.name));
@@ -72,16 +71,16 @@ impl CommandRunner {
             for dotfile in dotfiles {
                 let destination_path = PathBuf::from(dotfile.destination);
                 if destination_path.exists() {
-                    match fs::remove_dir_all(destination_path.as_path()) {
-                        Ok(_) => println!("Successfully unstowed {}", destination_path.display()),
-                        Err(_) => panic!("Cannot unstow {}", destination_path.display()),
-                    }
+                    fs::remove_dir_all(destination_path.as_path())?;
+                    out.push_str(&format!("{} ", dotfile.name));
                 }
             }
         }
+        Ok(out)
     }
 
-    pub fn clone(self, repos: &Option<Vec<String>>, rm: bool) {
+    pub fn clone(self, repos: &Option<Vec<String>>, rm: bool) -> Result<String> {
+        let mut out = String::from("Successfully cloned ");
         if let Some(mut git_repos) = self.app_config.repos {
             if let Some(names) = repos {
                 git_repos.retain(|dotfile| names.contains(&dotfile.name));
@@ -90,14 +89,9 @@ impl CommandRunner {
                 let destination_path = PathBuf::from(repo.destination);
                 if destination_path.exists() {
                     if rm {
-                        match fs::remove_dir_all(destination_path.as_path()) {
-                            Ok(_) => {
-                                println!("Successfully removed {}", destination_path.display())
-                            }
-                            Err(_) => panic!("Cannot remove {}", destination_path.display()),
-                        }
+                        fs::remove_dir_all(destination_path.as_path())?;
                     } else {
-                        panic!(
+                        bail!(
                             "Cannot clone {} to {}. The destination already exists. Re-run with --rm to remove it first",
                             repo.name,
                             destination_path.display()
@@ -105,16 +99,10 @@ impl CommandRunner {
                     }
                 }
 
-                // Clone repo
-                match Repository::clone(&repo.url, &destination_path) {
-                    Ok(_) => println!(
-                        "Successfully cloned {} to {}",
-                        repo.name,
-                        destination_path.display()
-                    ),
-                    Err(e) => panic!("Unable to clone {}: {}", repo.name, e),
-                }
+                Repository::clone(&repo.url, &destination_path)?;
+                out.push_str(&format!("{} ", repo.name));
             }
         }
+        Ok(out)
     }
 }
